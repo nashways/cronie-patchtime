@@ -228,7 +228,7 @@ entry *load_entry(FILE * file, void (*error_func) (const char *), struct passwd 
 			 * the real gating.
 			 */
 			int anchor = 1;
-			int seen_w = 0, seen_d = 0, seen_h = 0, seen_m = 0;
+			int seen_a = 0, seen_w = 0, seen_d = 0, seen_h = 0, seen_m = 0;
 
 			bit_nset(e->dom, 0, LAST_DOM - FIRST_DOM);
 			bit_nset(e->month, 0, LAST_MONTH - FIRST_MONTH);
@@ -236,7 +236,7 @@ entry *load_entry(FILE * file, void (*error_func) (const char *), struct passwd 
 
 			Skip_Blanks(ch, file);
 			for (;;) {
-				int tag, nc;
+				int tag, nc, dup;
 				if (ch == EOF || ch == '\n') break;
 				tag = ch;
 				nc = get_char(file);
@@ -256,6 +256,22 @@ entry *load_entry(FILE * file, void (*error_func) (const char *), struct passwd 
 					break;
 				}
 
+				/* Reject duplicate tags so e.g. "w1 w2" doesn't silently
+				 * overwrite -- catches typos and makes the syntax strict.
+				 */
+				dup = 0;
+				switch (tag) {
+				case 'a': dup = seen_a; break;
+				case 'w': dup = seen_w; break;
+				case 'd': dup = seen_d; break;
+				case 'h': dup = seen_h; break;
+				case 'm': dup = seen_m; break;
+				}
+				if (dup) {
+					ecode = e_timespec;
+					goto eof;
+				}
+
 				switch (tag) {
 				case 'a':
 					anchor = nc - '0';
@@ -264,6 +280,7 @@ entry *load_entry(FILE * file, void (*error_func) (const char *), struct passwd 
 						ecode = e_timespec;
 						goto eof;
 					}
+					seen_a = 1;
 					break;
 				case 'w':
 					ch = get_list(e->patch_week, 1, 5, PPC_NULL, nc, file);
