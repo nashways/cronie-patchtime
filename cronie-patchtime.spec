@@ -4,17 +4,17 @@
 %bcond_without inotify
 %bcond_without patchtime
 
-# Upstream cronie version this fork is based on, plus our downstream tag.
-%global upstream_version 1.7.2
-%global patchtime_release patchtime2
+# Release number without %{?dist} -- used in both Release: and the
+# Source0 URL so they stay in sync when bumping.
+%global release_base 2
 
 Summary:   Cron daemon with @patch crontab extension (fork of cronie)
 Name:      cronie-patchtime
-Version:   %{upstream_version}
-Release:   1.%{patchtime_release}%{?dist}
+Version:   1.7.2
+Release:   %{release_base}%{?dist}
 License:   MIT and BSD and ISC and GPLv2+
 URL:       https://github.com/nashways/cronie-patchtime
-Source0:   https://github.com/nashways/cronie-patchtime/archive/refs/tags/%{version}-%{patchtime_release}.tar.gz#/%{name}-%{version}-%{patchtime_release}.tar.gz
+Source0:   https://github.com/nashways/cronie-patchtime/archive/refs/tags/%{version}-%{release_base}.tar.gz#/%{name}-%{version}-%{release_base}.tar.gz
 
 # Drop-in replacement for the stock cronie package.
 Provides:  cronie = %{version}-%{release}
@@ -99,7 +99,7 @@ Old style of running {hourly,daily,weekly,monthly}.jobs without anacron. No
 extra features.
 
 %prep
-%autosetup -p1 -n %{name}-%{version}-%{patchtime_release}
+%autosetup -p1 -n %{name}-%{version}-%{release_base}
 
 %build
 ./autogen.sh
@@ -235,6 +235,13 @@ exit 0
 %attr(0644,root,root) %config(noreplace) %{_sysconfdir}/cron.d/dailyjobs
 
 %changelog
+* Mon May 18 2026 Nashway <nash@nashway.se> - 1.7.2-2
+- Simplify packaging: drop redundant "patchtime" tag from Release
+  (the Name already says cronie-patchtime).  Release is now a plain
+  sequential number.  This is the same source as the previous build.
+- Drop meaningless Obsoletes: %{name}-sysvinit inherited from
+  upstream cronie's spec.
+
 * Mon May 18 2026 Nashway <nash@nashway.se> - 1.7.2-1.patchtime2
 - Tighten @patch parser: duplicate tags (a/w/d/h/m within one entry)
   are now rejected with "bad time specifier" instead of silently
