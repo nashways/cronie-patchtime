@@ -55,7 +55,10 @@ The package replaces stock `cronie` cleanly (`Provides`/`Obsoletes`/
 already running stock cronie will swap them in one transaction.
 Same `crond.service`, same paths -- existing crontabs survive.
 
-Currently built for: **fedora-44-x86_64**, **fedora-rawhide-x86_64**.
+Currently built for **x86_64** and **aarch64** on:
+- Fedora 44
+- Fedora rawhide
+- EPEL 9 (RHEL 9 / CentOS Stream 9 / Rocky 9 / Alma 9)
 
   [copr]: https://copr.fedorainfracloud.org/coprs/nashways/cronie-patchtime/
 
