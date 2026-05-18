@@ -2,14 +2,24 @@
 %bcond_without pam
 %bcond_without audit
 %bcond_without inotify
+%bcond_without patchtime
 
-Summary:   Cron daemon for executing programs at set times
-Name:      cronie
-Version:   1.7.2
-Release:   0packit%{?dist}
+# Upstream cronie version this fork is based on, plus our downstream tag.
+%global upstream_version 1.7.2
+%global patchtime_release patchtime1
+
+Summary:   Cron daemon with @patch crontab extension (fork of cronie)
+Name:      cronie-patchtime
+Version:   %{upstream_version}
+Release:   1.%{patchtime_release}%{?dist}
 License:   MIT and BSD and ISC and GPLv2+
-URL:       https://github.com/cronie-crond/cronie
-Source0:   https://github.com/cronie-crond/cronie/releases/download/cronie-%{version}/cronie-%{version}.tar.gz
+URL:       https://github.com/nashways/cronie-patchtime
+Source0:   https://github.com/nashways/cronie-patchtime/archive/refs/tags/%{version}-%{patchtime_release}.tar.gz#/%{name}-%{version}-%{patchtime_release}.tar.gz
+
+# Drop-in replacement for the stock cronie package.
+Provides:  cronie = %{version}-%{release}
+Conflicts: cronie
+Obsoletes: cronie < %{version}-%{release}
 
 Requires:  dailyjobs
 
@@ -25,7 +35,7 @@ Buildrequires: pam-devel >= 1.0.1
 Buildrequires: audit-libs-devel >= 1.4.1
 %endif
 
-# Necessary for packit
+# Necessary for packit / autotools regeneration in %prep.
 BuildRequires: autoconf, automake, libtool
 
 BuildRequires: gcc
@@ -43,23 +53,31 @@ Requires(post):   coreutils sed
 
 
 %description
-Cronie contains the standard UNIX daemon crond that runs specified programs at
-scheduled times and related tools. It is a fork of the original vixie-cron and
-has security and configuration enhancements like the ability to use pam and
-SELinux.
+Cronie-patchtime is a fork of cronie that adds a new @patch crontab
+keyword for scheduling jobs by patch week of the month -- useful for
+staged rollouts where the same job needs to fire on (for example) the
+first Monday of every month, or only during weeks 1 and 3.
+
+It is otherwise a drop-in replacement for stock cronie: same daemon
+(crond), same crontab(1)/cronnext(1) tools, same paths, same systemd
+unit.  Vanilla 5-field cron syntax and all @-keywords (@daily,
+@reboot, @hourly, ...) work unchanged.
 
 %package anacron
 Summary:   Utility for running regular jobs
 Requires:  crontabs
 Provides:  dailyjobs
 Provides:  anacron = 2.4
+Provides:  cronie-anacron = %{version}-%{release}
+Conflicts: cronie-anacron
+Obsoletes: cronie-anacron < %{version}-%{release}
 Obsoletes: anacron <= 2.3
 Requires(post): coreutils
 Requires:  %{name} = %{version}-%{release}
 
 %description anacron
-Anacron is part of cronie that is used for running jobs with regular
-periodicity which do not have exact time of day of execution.
+Anacron is part of cronie-patchtime that is used for running jobs with
+regular periodicity which do not have exact time of day of execution.
 
 The default settings of anacron execute the daily, weekly, and monthly
 jobs, but anacron allows setting arbitrary periodicity of jobs.
@@ -71,6 +89,9 @@ for better utilization of resources shared among multiple systems.
 %package noanacron
 Summary:   Utility for running simple regular jobs in old cron style
 Provides:  dailyjobs
+Provides:  cronie-noanacron = %{version}-%{release}
+Conflicts: cronie-noanacron
+Obsoletes: cronie-noanacron < %{version}-%{release}
 Requires:  crontabs
 Requires:  %{name} = %{version}-%{release}
 
@@ -79,7 +100,7 @@ Old style of running {hourly,daily,weekly,monthly}.jobs without anacron. No
 extra features.
 
 %prep
-%autosetup -p1
+%autosetup -p1 -n %{name}-%{version}-%{patchtime_release}
 
 %build
 ./autogen.sh
@@ -96,6 +117,11 @@ extra features.
 %endif
 %if %{with inotify}
 --with-inotify \
+%endif
+%if %{with patchtime}
+--enable-patchtime \
+%else
+--disable-patchtime \
 %endif
 --enable-anacron \
 --enable-pie \
@@ -210,6 +236,15 @@ exit 0
 %attr(0644,root,root) %config(noreplace) %{_sysconfdir}/cron.d/dailyjobs
 
 %changelog
+* Sun May 17 2026 Nashway <nash@nashway.se> - 1.7.2-1.patchtime1
+- Initial cronie-patchtime release based on upstream cronie 1.7.2.
+- Adds @patch crontab keyword for patch-week scheduling
+  (e.g. "@patch w1 d1 h09 cmd" runs cmd at 09:00 on the first
+  Monday of every month).  See crontab(5) for grammar and examples.
+- Builds with --enable-patchtime by default; pass --without patchtime
+  to rpmbuild for vanilla cronie behavior.
+- Drop-in replacement: Provides/Obsoletes/Conflicts stock cronie.
+
 * Mon Apr  8 2024 Packit <packit@packit.dev> - 1.7.2-0packit
 - Packit build
 
@@ -434,7 +469,7 @@ exit 0
 - update to 1.4.6
 
 * Fri Aug 13 2010 Marcela Mašláňová <mmaslano@redhat.com> - 1.4.5-4
-- 623908 fix fd leak in anacron, which caused denail of prelink 
+- 623908 fix fd leak in anacron, which caused denail of prelink
   and others
 
 * Mon Aug  9 2010 Marcela Mašláňová <mmaslano@redhat.com> - 1.4.5-2
@@ -510,7 +545,7 @@ exit 0
 - add sendmail file into requirement, cause it's needed some MTA
 
 * Thu Sep 18 2008 Marcela Maslanova <mmaslano@redhat.com> - 1.2-2
-- 462252  /etc/sysconfig/crond does not need to be executable 
+- 462252  /etc/sysconfig/crond does not need to be executable
 
 * Thu Jun 26 2008 Marcela Maslanova <mmaslano@redhat.com> - 1.2-1
 - update to 1.2
@@ -537,7 +572,7 @@ exit 0
 - 431366 after reboot wasn't cron in chkconfig
 
 * Tue Feb  5 2008 Marcela Maslanova <mmaslano@redhat.com> - 1.0-3
-- 431366 trigger part => after update from vixie-cron on cronie will 
+- 431366 trigger part => after update from vixie-cron on cronie will
   be daemon running.
 
 * Wed Jan 30 2008 Marcela Maslanova <mmaslano@redhat.com> - 1.0-2
