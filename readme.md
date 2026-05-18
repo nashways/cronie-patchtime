@@ -6,6 +6,53 @@ SELinux.
 
 And why cronie? [http://www.urbandictionary.com/define.php?term=cronie]
 
+# Fork: @patch extension
+This fork (`cronie-patchtime`) adds a new `@patch` crontab keyword that
+fires a job only during a particular "patch week" of the month — useful
+for staged rollouts where, for example, you sync an upstream repo on the
+first Monday and promote to production on the third Monday. The math is
+the same as the [patchtime](https://github.com/nashways/patchtime)
+project; this fork lifts it into the cron daemon itself so the gating
+no longer needs a shell wrapper.
+
+## Syntax
+
+    @patch [a<N>] w<list> d<list> [h<list>] [m<list>]   command
+
+- `a<N>` — anchor weekday, ISO 1..7 (1=Mon … 7=Sun). Optional; default 1.
+  Week 1 is the Mon-Sun row containing the first occurrence of this
+  weekday in the month.
+- `w<list>` — patch week list, 1..5. Required. Same syntax as a normal
+  cron field (`1,3`, `1-4`, `*`, etc).
+- `d<list>` — day-of-week list, 0..7 (0/7 = Sunday). Required.
+- `h<list>` — hour list, 0..23. Optional; default 0.
+- `m<list>` — minute list, 0..59. Optional; default 0.
+
+## Examples
+
+    # First Monday of every month, midnight
+    @patch w1 d1                  /usr/local/bin/sync-upstream
+
+    # Weeks 1 and 3, Monday at 09:30
+    @patch w1,3 d1 h09 m30        /usr/local/bin/patchsync.sh
+
+    # Patch-Tuesday style: second Tuesday of each month at noon
+    @patch a2 w2 d2 h12           /usr/local/bin/tue-patch
+
+    # Any weekday of weeks 1-4 at 10:00
+    @patch w1-4 d1-5 h10          /usr/local/bin/business-day-job
+
+## Building
+
+The feature is on by default. To opt out:
+
+    ./configure --disable-patchtime
+
+When disabled, the build produces vanilla cronie that rejects `@patch`
+with the standard "bad time specifier" error.
+
+See `man crontab` (section 5) on this fork for the full reference.
+
 # Download
 Latest released version is 1.7.2.
 
