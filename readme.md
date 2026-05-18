@@ -1,19 +1,19 @@
-# Cronie
-Cronie contains the standard UNIX daemon crond that runs specified programs at
-scheduled times and related tools. The source is based on the original vixie-cron
-and has security and configuration enhancements like the ability to use pam and
-SELinux.
+# cronie-patchtime — cron with an `@patch` keyword for week-of-month scheduling
+
+A fork of upstream [cronie](https://github.com/cronie-crond/cronie) that adds a single new crontab keyword, `@patch`, for scheduling jobs by patch week of the month. `@patch w1 d1` fires on the first Monday of every month; `@patch a2 w2 d2 h09` fires on the second Tuesday at 09:00 — the classic Patch-Tuesday pattern, native in cron. Drop-in replacement for stock cronie on Fedora, RHEL 9, CentOS Stream 9, Rocky 9, and Alma 9 (`x86_64` and `aarch64`); install via the Copr repo below.
+
+Math comes from the companion project [patchtime](https://github.com/nashways/patchtime) (shell + Python utilities for the same week-of-month idea); this fork lifts the math into the cron daemon itself so jobs no longer need a shell-wrapper guard like `[ $(./patchtime.sh) == "w1d1h00" ] && ./sync.sh`.
+
+## Why a fork
+Staged rollouts often want job A on the first Monday and job B on the third Monday of every month. Plain `0 9 1-7 * 1` (first Monday) works, but `0 9 15-21 * 1` (third Monday) requires manual arithmetic per anchor weekday and doesn't compose with day ranges. `@patch w1,3 d1 h09` does the same thing in one expression — and the daemon, not your shell wrapper, decides whether to fire.
+
+# Upstream cronie
+
+The rest of this README is from upstream cronie unmodified. cronie contains the standard UNIX daemon crond that runs specified programs at scheduled times and related tools. The source is based on the original vixie-cron and has security and configuration enhancements like the ability to use pam and SELinux.
 
 And why cronie? [http://www.urbandictionary.com/define.php?term=cronie]
 
 # Fork: @patch extension
-This fork (`cronie-patchtime`) adds a new `@patch` crontab keyword that
-fires a job only during a particular "patch week" of the month — useful
-for staged rollouts where, for example, you sync an upstream repo on the
-first Monday and promote to production on the third Monday. The math is
-the same as the [patchtime](https://github.com/nashways/patchtime)
-project; this fork lifts it into the cron daemon itself so the gating
-no longer needs a shell wrapper.
 
 ## Syntax
 
