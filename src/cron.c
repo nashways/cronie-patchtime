@@ -49,6 +49,9 @@
 #include "cronie_common.h"
 #include "funcs.h"
 #include "globals.h"
+#ifdef WITH_PATCHTIME
+#include "patchtime.h"
+#endif
 #include "pathnames.h"
 
 #if defined WITH_INOTIFY
@@ -584,6 +587,21 @@ static void find_jobs(int vtime, cron_db * db, int doWild, int doNonWild, long v
 						: (bit_test(e->dow, dow) || bit_test(e->dom, dom))
 				)
 			) {
+#ifdef WITH_PATCHTIME
+				/* @patch gate: only fire if the current patchtime week
+				 * (computed against e->patch_anchor) is in patch_week.
+				 */
+				if (e->flags & PATCH_USE) {
+					int pw = patchtime_week(tm->tm_year + 1900,
+								tm->tm_mon + 1,
+								tm->tm_mday,
+								e->patch_anchor);
+					if (pw < 1 || pw > 5 ||
+					    !bit_test(e->patch_week, pw - 1))
+						continue;
+				}
+#endif
+
 				if (job_tz != NULL && vGMToff != GMToff)
 					/* do not try to run the jobs from different timezones
 					 * during the DST switch of the default timezone.

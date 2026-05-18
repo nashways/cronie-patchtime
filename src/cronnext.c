@@ -32,6 +32,9 @@
 
 #include "globals.h"
 #include "funcs.h"
+#ifdef WITH_PATCHTIME
+#include "patchtime.h"
+#endif
 #include "cron-paths.h"
 
 /* flags to crontab search */
@@ -79,7 +82,11 @@ const char *flagname[]= {
 	"DOM_STAR",
 	"DOW_STAR",
 	"WHEN_REBOOT",
-	"DONT_LOG"
+	"DONT_LOG",
+	"MAIL_WHEN_ERR",
+#ifdef WITH_PATCHTIME
+	"PATCH_USE"
+#endif
 };
 
 void printflags(char *indent, int flags) {
@@ -186,8 +193,22 @@ time_t nextmatch(entry *e, time_t start, time_t end) {
 			matchday(e, time) &&
 			bit_test(e->hour, current.tm_hour) &&
 			bit_test(e->minute, current.tm_min)
-		)
+		) {
+#ifdef WITH_PATCHTIME
+			if (e->flags & PATCH_USE) {
+				int pw = patchtime_week(current.tm_year + 1900,
+							current.tm_mon + 1,
+							current.tm_mday,
+							e->patch_anchor);
+				if (pw < 1 || pw > 5 ||
+				    !bit_test(e->patch_week, pw - 1)) {
+					time += 60;
+					continue;
+				}
+			}
+#endif
 			return time;
+		}
 
 		/* skip to next minute */
 		time += 60;

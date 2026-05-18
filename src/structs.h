@@ -40,6 +40,15 @@ typedef	struct _entry {
 	bitstr_t	bit_decl(dom,    DOM_COUNT);
 	bitstr_t	bit_decl(month,  MONTH_COUNT);
 	bitstr_t	bit_decl(dow,    DOW_COUNT);
+#ifdef WITH_PATCHTIME
+	/* Patch-window extension: when PATCH_USE is set, a job only fires if
+	 * the current patchtime week (computed against patch_anchor) is one
+	 * of the bits set in patch_week.  Weeks are 1-indexed externally;
+	 * stored 0-indexed in patch_week (bit i means week i+1).
+	 */
+	bitstr_t	bit_decl(patch_week, 5);
+	int		patch_anchor;	/* ISO weekday 1..7, valid iff PATCH_USE */
+#endif
 	int		flags;
 	int		delay;
 #define	MIN_STAR	0x01
@@ -49,6 +58,9 @@ typedef	struct _entry {
 #define	WHEN_REBOOT	0x10
 #define	DONT_LOG	0x20
 #define	MAIL_WHEN_ERR	0x40
+#ifdef WITH_PATCHTIME
+#define	PATCH_USE	0x80
+#endif
 } entry;
 
 			/* the crontab database will be a list of the

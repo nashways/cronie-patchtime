@@ -41,6 +41,9 @@
 #include "funcs.h"
 #include "globals.h"
 #include "macros.h"
+#ifdef WITH_PATCHTIME
+#include "patchtime.h"
+#endif
 #include "pathnames.h"
 
 typedef enum ecode {
@@ -209,6 +212,94 @@ entry *load_entry(FILE * file, void (*error_func) (const char *), struct passwd 
 			bit_nset(e->dow, 0, LAST_DOW - FIRST_DOW);
 			e->flags |= HR_STAR;
 		}
+#ifdef WITH_PATCHTIME
+		else if (!strcmp("patch", cmd)) {
+			/* Syntax:
+			 *   @patch [a<N>] w<list> d<list> [h<list>] [m<list>]  cmd
+			 *
+			 * a: anchor weekday 1..7 (ISO; 1=Mon, default 1)
+			 * w: patch week list 1..5 (required)
+			 * d: day-of-week list 0..7 (required; 0/7 = Sun, names ok)
+			 * h: hour list 0..23 (default 0)
+			 * m: minute list 0..59 (default 0)
+			 *
+			 * dom and month are forced to all-set so they're a no-op
+			 * in find_jobs's AND chain; the patch_week + dow tests do
+			 * the real gating.
+			 */
+			int anchor = 1;
+			int seen_w = 0, seen_d = 0, seen_h = 0, seen_m = 0;
+
+			bit_nset(e->dom, 0, LAST_DOM - FIRST_DOM);
+			bit_nset(e->month, 0, LAST_MONTH - FIRST_MONTH);
+			e->flags |= DOM_STAR;
+
+			Skip_Blanks(ch, file);
+			for (;;) {
+				int tag, nc;
+				if (ch == EOF || ch == '\n') break;
+				tag = ch;
+				nc = get_char(file);
+				if (nc == EOF) { ecode = e_timespec; goto eof; }
+
+				/* Decide if this token belongs to @patch or is the command. */
+				int is_field = 0;
+				if (tag == 'a' && nc >= '1' && nc <= '7') is_field = 1;
+				else if ((tag == 'w' || tag == 'd' || tag == 'h' || tag == 'm')
+				         && (nc == '*' || (nc >= '0' && nc <= '9')))
+					is_field = 1;
+
+				if (!is_field) {
+					unget_char(nc, file);
+					unget_char(tag, file);
+					ch = tag;  /* will be re-read below */
+					break;
+				}
+
+				switch (tag) {
+				case 'a':
+					anchor = nc - '0';
+					ch = get_char(file);
+					if (ch != ' ' && ch != '\t' && ch != '\n' && ch != EOF) {
+						ecode = e_timespec;
+						goto eof;
+					}
+					break;
+				case 'w':
+					ch = get_list(e->patch_week, 1, 5, PPC_NULL, nc, file);
+					if (ch == EOF) { ecode = e_timespec; goto eof; }
+					seen_w = 1;
+					break;
+				case 'd':
+					ch = get_list(e->dow, FIRST_DOW, LAST_DOW, DowNames, nc, file);
+					if (ch == EOF) { ecode = e_dow; goto eof; }
+					seen_d = 1;
+					break;
+				case 'h':
+					ch = get_list(e->hour, FIRST_HOUR, LAST_HOUR, PPC_NULL, nc, file);
+					if (ch == EOF) { ecode = e_hour; goto eof; }
+					seen_h = 1;
+					break;
+				case 'm':
+					ch = get_list(e->minute, FIRST_MINUTE, LAST_MINUTE, PPC_NULL, nc, file);
+					if (ch == EOF) { ecode = e_minute; goto eof; }
+					seen_m = 1;
+					break;
+				}
+				Skip_Blanks(ch, file);
+			}
+
+			if (!seen_w || !seen_d) {
+				ecode = e_timespec;
+				goto eof;
+			}
+			if (!seen_h) bit_set(e->hour, 0);
+			if (!seen_m) bit_set(e->minute, 0);
+
+			e->patch_anchor = anchor;
+			e->flags |= PATCH_USE;
+		}
+#endif /* WITH_PATCHTIME */
 		else {
 			ecode = e_timespec;
 			goto eof;
