@@ -42,7 +42,24 @@ no longer needs a shell wrapper.
     # Any weekday of weeks 1-4 at 10:00
     @patch w1-4 d1-5 h10          /usr/local/bin/business-day-job
 
-## Building
+## Installing on Fedora (via Copr)
+
+Pre-built RPMs are published to a [Copr][copr] repo. Enable and
+install with:
+
+    sudo dnf copr enable nashways/cronie-patchtime
+    sudo dnf install cronie-patchtime
+
+The package replaces stock `cronie` cleanly (`Provides`/`Obsoletes`/
+`Conflicts` are set), so `dnf install cronie-patchtime` on a host
+already running stock cronie will swap them in one transaction.
+Same `crond.service`, same paths -- existing crontabs survive.
+
+Currently built for: **fedora-44-x86_64**, **fedora-rawhide-x86_64**.
+
+  [copr]: https://copr.fedorainfracloud.org/coprs/nashways/cronie-patchtime/
+
+## Building from source
 
 The feature is on by default. To opt out:
 
