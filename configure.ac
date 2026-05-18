@@ -253,6 +253,16 @@ CRONIE_CONF_VAR([SPOOL_DIR], [the directory where all the user cron tabs reside]
 
 AC_ARG_ENABLE([anacron], [AS_HELP_STRING([--disable-anacron], [Do not build anacron.])], [], [enable_anacron=yes])
 AM_CONDITIONAL([ANACRON], [test "$enable_anacron" = yes])
+
+AC_ARG_ENABLE([patchtime],
+	[AS_HELP_STRING([--disable-patchtime],
+		[Do not build the @patch crontab extension (patch-window scheduling).])],
+	[], [enable_patchtime=yes])
+AM_CONDITIONAL([PATCHTIME], [test "$enable_patchtime" = yes])
+if test "$enable_patchtime" = yes; then
+	AC_DEFINE([WITH_PATCHTIME], 1,
+		[Define if the @patch crontab extension is enabled.])
+fi
 if test "$enable_anacron" != no; then
 	ANACRON_CONF_VAR([ANACRON_SPOOL_DIR],[The path for anacron locks.],[${localstatedir}/spool/anacron])
 	ANACRON_CONF_VAR([ANACRONTAB],[The anacron table for regular jobs.],[${sysconfdir}/anacrontab])

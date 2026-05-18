@@ -43,6 +43,12 @@ common_src = \
 	src/pw_dup.c \
 	src/structs.h
 
+if PATCHTIME
+common_src += \
+	src/patchtime.c \
+	src/patchtime.h
+endif
+
 common_nodist += cron-paths.h
 nodist_src_crond_SOURCES = $(common_nodist)
 nodist_src_crontab_SOURCES = $(common_nodist)
