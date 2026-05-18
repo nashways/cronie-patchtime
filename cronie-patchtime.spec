@@ -6,7 +6,7 @@
 
 # Upstream cronie version this fork is based on, plus our downstream tag.
 %global upstream_version 1.7.2
-%global patchtime_release patchtime1
+%global patchtime_release patchtime2
 
 Summary:   Cron daemon with @patch crontab extension (fork of cronie)
 Name:      cronie-patchtime
@@ -236,6 +236,12 @@ exit 0
 %attr(0644,root,root) %config(noreplace) %{_sysconfdir}/cron.d/dailyjobs
 
 %changelog
+* Mon May 18 2026 Nashway <nash@nashway.se> - 1.7.2-1.patchtime2
+- Tighten @patch parser: duplicate tags (a/w/d/h/m within one entry)
+  are now rejected with "bad time specifier" instead of silently
+  overwriting the previous value.  Catches typos like
+  "@patch w1 w2 d1" that would otherwise behave as "@patch w2 d1".
+
 * Sun May 17 2026 Nashway <nash@nashway.se> - 1.7.2-1.patchtime1
 - Initial cronie-patchtime release based on upstream cronie 1.7.2.
 - Adds @patch crontab keyword for patch-week scheduling
