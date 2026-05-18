@@ -41,7 +41,6 @@ BuildRequires: autoconf, automake, libtool
 BuildRequires: gcc
 BuildRequires: systemd
 BuildRequires: make
-Obsoletes:     %{name}-sysvinit
 
 Requires(post):   coreutils sed
 
